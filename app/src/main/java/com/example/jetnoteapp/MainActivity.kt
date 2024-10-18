@@ -4,12 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.jetnoteapp.models.Note
 import com.example.jetnoteapp.screens.NoteScreen
 import com.example.jetnoteapp.screens.NoteViewModel
 import com.example.jetnoteapp.ui.theme.JetNoteAppTheme
@@ -22,8 +19,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             JetNoteAppTheme {
-                val noteViewModel: NoteViewModel by viewModels<NoteViewModel>();
+                /* Options 1 */
+                // val noteViewModel: NoteViewModel by viewModels<NoteViewModel>();
 
+                /* Options 2 */
+                val noteViewModel = viewModel<NoteViewModel>()
                 NotesApp(noteViewModel = noteViewModel)
             }
         }
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NotesApp(noteViewModel: NoteViewModel) {
-    val notesList = noteViewModel.getAllNotes()
+    val notesList = noteViewModel.noteList.collectAsState().value
 
     NoteScreen(
         notes = notesList,
