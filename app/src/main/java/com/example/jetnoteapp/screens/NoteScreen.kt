@@ -34,7 +34,6 @@ import com.example.jetnoteapp.R
 import com.example.jetnoteapp.components.NoteButton
 import com.example.jetnoteapp.components.NoteInputTex
 import com.example.jetnoteapp.models.Note
-import java.time.format.DateTimeFormatter
 
 
 @OptIn(ExperimentalMaterial3Api::class)
