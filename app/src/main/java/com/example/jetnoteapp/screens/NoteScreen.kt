@@ -2,22 +2,34 @@ package com.example.jetnoteapp.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.rounded.Done
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -27,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +56,8 @@ fun NoteScreen(
     notes: List<Note>,
     onAddNote: (Note) -> Unit,
     onRemoveNote: (Note) -> Unit,
+    onEditClick: (Note) -> Unit,
+    onDeleteAll: () -> Unit,
 ) {
     val title = remember { mutableStateOf("") }
     val description = remember { mutableStateOf("") }
@@ -60,9 +75,11 @@ fun NoteScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                 ),
                 actions = {
-                    Icon(
-                        imageVector = Icons.Rounded.Done, contentDescription = "Done",
-                    )
+                    IconButton(
+                        onClick = { onDeleteAll() }
+                    ) {
+                        Icon(imageVector = Icons.Rounded.Done, contentDescription = "Done")
+                    }
                 },
             )
         },
@@ -135,6 +152,9 @@ fun NoteScreen(
                         onNoteClicked = {
                             onRemoveNote(note)
                         },
+                        onEditClick = {
+                            onEditClick(note)
+                        }
                     )
                 }
             }
@@ -147,7 +167,10 @@ fun NoteRow(
     modifier: Modifier = Modifier,
     note: Note,
     onNoteClicked: (Note) -> Unit,
+    onEditClick: (Note) -> Unit,
 ) {
+    val openAlertDialog = remember { mutableStateOf(false) }
+
     Surface(
         modifier = modifier
             .padding(4.dp)
@@ -155,24 +178,133 @@ fun NoteRow(
         color = Color(0xFFDFE6EB),
         tonalElevation = 6.dp,
     ) {
-        Column(
-            modifier = Modifier
-                .clickable(
-                    onClick = {
-                        onNoteClicked(note)
-                    },
-                )
-                .padding(
-                    horizontal = 14.dp, vertical = 6.dp,
-                ),
-            horizontalAlignment = Alignment.Start,
+        Row(
+            modifier = Modifier.padding(
+                horizontal = 14.dp, vertical = 6.dp,
+            ),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = note.title, style = MaterialTheme.typography.titleMedium)
-            Text(text = note.description, style = MaterialTheme.typography.titleSmall)
-            Text(
-                text = formatDate(note.entryDate.time),
-                style = MaterialTheme.typography.bodySmall
-            )
+            Column(
+                modifier = Modifier
+                    .clickable(
+                        onClick = {
+                            onNoteClicked(note)
+                        },
+                    ),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(text = note.title, style = MaterialTheme.typography.titleMedium)
+                Text(text = note.description, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = formatDate(note.entryDate.time),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Surface(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clickable(
+                        onClick = {
+                            openAlertDialog.value = true
+                        },
+                        indication = rememberRipple(),
+                        interactionSource = remember { MutableInteractionSource() }
+                    ),
+                tonalElevation = 10.dp,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Edit")
+                }
+            }
         }
     }
+
+    if (openAlertDialog.value) {
+        EditAlertDialog(
+            onDismissRequest = { openAlertDialog.value = false },
+            onConfirmation = {
+                openAlertDialog.value = false
+                onEditClick(note)
+            },
+            dialogTitle = "Edit Note",
+            icon = Icons.Default.Info,
+            note = note,
+        )
+    }
+}
+
+
+@Composable
+fun EditAlertDialog(
+    onDismissRequest: () -> Unit,
+    onConfirmation: (Note) -> Unit,
+    dialogTitle: String,
+    note: Note,
+    icon: ImageVector,
+) {
+    val newTitle = remember { mutableStateOf("") }
+    val newDescription = remember { mutableStateOf("") }
+
+    newTitle.value = note.title
+    newDescription.value = note.description
+
+    AlertDialog(
+        icon = {
+            Icon(icon, contentDescription = "Example Icon")
+        },
+        title = {
+            Text(text = dialogTitle)
+        },
+        text = {
+            Column {
+                NoteInputTex(
+                    text = newTitle.value,
+                    label = "2345",
+                    onTextChange = { char ->
+                        if (char.all { it.isLetter() || it.isWhitespace() })
+                            newTitle.value = char
+                    },
+                )
+                NoteInputTex(
+                    text = newDescription.value,
+                    label = "2345",
+                    onTextChange = { char ->
+                        if (char.all { it.isLetter() || it.isWhitespace() })
+                            newDescription.value = char
+                    },
+                )
+            }
+        },
+        onDismissRequest = {
+            onDismissRequest()
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirmation(
+                        Note(
+                            id = note.id,
+                            title = newTitle.value,
+                            description = newDescription.value,
+                        )
+                    )
+                }
+            ) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onDismissRequest()
+                }
+            ) {
+                Text("Dismiss")
+            }
+        }
+    )
 }
